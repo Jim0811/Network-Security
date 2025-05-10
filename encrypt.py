@@ -1,4 +1,6 @@
 import random
+from Crypto.PublicKey import RSA 
+from Crypto.Cipher import PKCS1_OAEP 
 
 # 原本的種子產生函數
 def generate_seeds(key):
@@ -87,46 +89,19 @@ def encrypt(plaintext, key, block_size=10):
     length_str = str(len(plaintext)).zfill(4)
     return ''.join(final_cipher) + length_str, base_seed, size
 
-# 整合解密：多表代換還原 → 換位復原
-def decrypt(ciphertext, key, size = 9, block_size=10):
-    total_size = size ** 3
-    cipher_body = ciphertext[:-4]
-    original_length = int(ciphertext[-4:])
-    base_seed = generate_seeds(key)
-    # 多表解密
-    tables = generate_multiple_sub_tables(key, (total_size // block_size) + 1)
-    recovered_text = []
-    for i, c in enumerate(cipher_body):
-        table_id = i // block_size
-        _, dec_table = tables[table_id]
-        recovered_text.append(dec_table.get(c, c))
-
-    # 換位復原
-    matrix = [[[None for _ in range(size)] for _ in range(size)] for _ in range(size)]
-    coords = [(i, j, k) for i in range(size) for j in range(size) for k in range(size)]
-
-    idx = 0
-    dynamic_seed = base_seed
-    while coords:
-        random.seed(dynamic_seed)
-        pos = random.choice(coords)
-        coords.remove(pos)
-
-        i, j, k = pos
-        matrix[i][j][k] = recovered_text[idx]
-
-        char_val = ord(recovered_text[idx])
-        dynamic_seed = (dynamic_seed * 131 + char_val + idx * 17) % (10**9 + 7)
-
-        idx += 1
-
-    return flatten_3d(matrix)[:original_length]
-
 plaintext = "se245d3c"
-key = "p4ssw"
+key = "34AZY"
+
+# read public key
+with open("de_public.pem", "rb") as f:
+    de_public_key = RSA.import_key(f.read())
+
+cipher = PKCS1_OAEP.new(de_public_key)
+encrypted_message = cipher.encrypt(key.encode())
+
+with open("key.bin", "wb") as f:
+    f.write(encrypted_message)
+
 ciphertext, seed, size = encrypt(plaintext, key)
 print("明文：", plaintext)
 print("密文：", ciphertext)
-
-decrypted = decrypt(ciphertext, key)
-print("解密：", decrypted)
