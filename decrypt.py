@@ -3,6 +3,44 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 import base64
 
+def generate_playfair_key_string(key: str) -> str:
+    DEFAULT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+    used_chars = set()
+    processed_key = []
+    for c in key.upper():
+        if c in DEFAULT_CHARS and c not in used_chars:
+            processed_key.append(c)
+            used_chars.add(c)
+    for c in DEFAULT_CHARS:
+        if c not in used_chars:
+            processed_key.append(c)
+    return ''.join(processed_key[:32])
+
+class CustomBase32:
+    def __init__(self, alphabet: str):
+        if len(alphabet) != 32:
+            raise ValueError("Alphabet must be exactly 32 characters")
+        self.alphabet = alphabet
+        self.char_map = {c: i for i, c in enumerate(alphabet)}
+        
+    def decode(self, data: str) -> str:
+        if not data:
+            return ""
+        buffer = 0
+        bits_left = 0
+        output = []
+        for c in data:
+            if c not in self.char_map:
+                if c == '=':
+                    continue
+                raise ValueError(f"Invalid character '{c}' in Base32 input")
+            buffer = (buffer << 5) | self.char_map[c]
+            bits_left += 5
+            if bits_left >= 8:
+                bits_left -= 8
+                output.append((buffer >> bits_left) & 0xFF)
+        return bytes(output).decode('utf-8', errors='replace')
+
 def generate_seeds(key):
     base_seed = 0
     for c in key:
@@ -17,7 +55,7 @@ def flatten_3d(matrix):
 # 多表代換表生成
 def generate_multiple_sub_tables(key, num_tables):
     base_seed = generate_seeds(key)
-    charset = list('0123456789abcdefghijklmnopqrstuvwxyz')
+    charset = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
     tables = []
 
     for i in range(num_tables):
@@ -30,39 +68,62 @@ def generate_multiple_sub_tables(key, num_tables):
 
     return tables
 
-def decrypt(ciphertext, key, size = 9, block_size=10):
-    total_size = size ** 3
-    cipher_body = ciphertext[:-4]
-    original_length = int(ciphertext[-4:])
+def decrypt(ciphertext, key, size=9, block_size=10):
+    # 1. 首先進行多表代換解密（這是加密時的最後一步）
     base_seed = generate_seeds(key)
+    total_size = size ** 3
+    
+    # 計算需要的替換表數量
+    tables_needed = (len(ciphertext)) // block_size + 1
+    tables = generate_multiple_sub_tables(key, tables_needed)
+    
     # 多表解密
-    tables = generate_multiple_sub_tables(key, (total_size // block_size) + 1)
     recovered_text = []
-    for i, c in enumerate(cipher_body):
+    for i, c in enumerate(ciphertext):
         table_id = i // block_size
-        _, dec_table = tables[table_id]
-        recovered_text.append(dec_table.get(c, c))
-
-    # 換位復原
+        if table_id < len(tables):
+            _, dec_table = tables[table_id]
+            recovered_text.append(dec_table.get(c, c))
+        else:
+            recovered_text.append(c)
+    
+    # 2. 3D矩陣換位復原
+    # 先提取最後4位長度信息（加密時附加在展平矩陣後的末尾）
+    length_str = ''.join(recovered_text[-4:])
+    original_length = int(length_str)
+    cipher_body = recovered_text[:-4]
+    
+    # 重新構建3D矩陣
     matrix = [[[None for _ in range(size)] for _ in range(size)] for _ in range(size)]
     coords = [(i, j, k) for i in range(size) for j in range(size) for k in range(size)]
-
+    
     idx = 0
     dynamic_seed = base_seed
-    while coords:
+    while coords and idx < len(cipher_body):
         random.seed(dynamic_seed)
         pos = random.choice(coords)
         coords.remove(pos)
-
         i, j, k = pos
-        matrix[i][j][k] = recovered_text[idx]
-
-        char_val = ord(recovered_text[idx])
+        matrix[i][j][k] = cipher_body[idx]
+        char_val = ord(cipher_body[idx])
         dynamic_seed = (dynamic_seed * 131 + char_val + idx * 17) % (10**9 + 7)
-
         idx += 1
+    
+    # 展平3D矩陣
+    flat_text = flatten_3d(matrix)
+    
+    # 3. 自定義Base32解碼（這是加密時的第一步）
+    custom_alphabet = generate_playfair_key_string(key)
+    base32_decoder = CustomBase32(custom_alphabet)
+    try:
+        decrypted = base32_decoder.decode(flat_text)
+    except Exception as e:
+        print(f"Base32解碼錯誤: {e}")
+        return None
+    
+    # 返回原始長度的明文
+    return decrypted[:original_length]
 
-    return flatten_3d(matrix)[:original_length]
 
 ciphertext = input("Input the cyphertext：")
 
