@@ -1,6 +1,7 @@
 import random
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
+import base64
 
 def generate_seeds(key):
     base_seed = 0
@@ -78,9 +79,10 @@ except FileNotFoundError:
     de_private_key = de_key
 
 decipher = PKCS1_OAEP.new(de_private_key)
-with open("key.bin", "rb") as f:
-    encrypted_message = f.read()
+with open("key.txt", "r") as f:
+    cipher_text_str = f.read()
 
+encrypted_message = base64.b64decode(cipher_text_str)
 # 解密
 key = decipher.decrypt(encrypted_message).decode()
 print("key：", key)

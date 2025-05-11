@@ -1,6 +1,7 @@
 import random
 from Crypto.PublicKey import RSA 
 from Crypto.Cipher import PKCS1_OAEP 
+import base64
 
 # 原本的種子產生函數
 def generate_seeds(key):
@@ -98,9 +99,9 @@ with open("de_public.pem", "rb") as f:
 
 cipher = PKCS1_OAEP.new(de_public_key)
 encrypted_message = cipher.encrypt(key.encode())
-
-with open("key.bin", "wb") as f:
-    f.write(encrypted_message)
+cipher_text_str = base64.b64encode(encrypted_message).decode()
+with open("key.txt", "w") as f:
+    f.write(cipher_text_str)
 
 ciphertext, seed, size = encrypt(plaintext, key)
 print("明文：", plaintext)
