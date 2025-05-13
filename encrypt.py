@@ -132,7 +132,6 @@ def encrypt(plaintext, key, block_size=10):
     custom_alphabet = generate_playfair_key_string(key)
     base32_encoder = CustomBase32(custom_alphabet)
     base32_plaintext = base32_encoder.encode(plaintext)
-    print(base32_plaintext)
 
     # --- Step 2: 填充 + 轉 3D 矩陣 ---
     size = 9
