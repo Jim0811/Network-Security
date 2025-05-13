@@ -3,6 +3,27 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 import base64
 
+p = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1  
+a = 0
+b = 7
+G = (0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798, 
+     0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8)
+
+
+def point_add(P, Q):
+    if P == (None, None): return Q
+    if Q == (None, None): return P
+    if P == Q:
+        lmb = (3 * P[0] ** 2 + a) * pow(2 * P[1], p-2, p) % p
+    else:
+        if P[0] == Q[0]:
+            return (None, None)
+        lmb = (Q[1] - P[1]) * pow(Q[0] - P[0], p-2, p) % p
+
+    xr = (lmb**2 - P[0] - Q[0]) % p
+    yr = (lmb * (P[0] - xr) - P[1]) % p
+    return (xr, yr)
+
 def generate_playfair_key_string(key: str) -> str:
     DEFAULT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
     used_chars = set()
@@ -98,15 +119,16 @@ def decrypt(ciphertext, key, size=9, block_size=10):
     coords = [(i, j, k) for i in range(size) for j in range(size) for k in range(size)]
     
     idx = 0
-    dynamic_seed = base_seed
+    seed_point = (base_seed % p, base_seed % p)
     while coords and idx < len(cipher_body):
-        random.seed(dynamic_seed)
-        pos = random.choice(coords)
-        coords.remove(pos)
+        pos_idx = seed_point[0] % len(coords)
+        pos = coords.pop(pos_idx)
+
         i, j, k = pos
         matrix[i][j][k] = cipher_body[idx]
-        char_val = ord(cipher_body[idx])
-        dynamic_seed = (dynamic_seed * 131 + char_val + idx * 17) % (10**9 + 7)
+
+        seed_point = point_add(seed_point, G)
+
         idx += 1
     
     # 展平3D矩陣

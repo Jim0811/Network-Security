@@ -3,6 +3,26 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP 
 import base64
 
+p = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1  
+a = 0
+b = 7
+G = (0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798, 
+     0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8)
+
+def point_add(P, Q):
+    if P == (None, None): return Q
+    if Q == (None, None): return P
+    if P == Q:
+        lmb = (3 * P[0] ** 2 + a) * pow(2 * P[1], p-2, p) % p
+    else:
+        if P[0] == Q[0]:
+            return (None, None)
+        lmb = (Q[1] - P[1]) * pow(Q[0] - P[0], p-2, p) % p
+
+    xr = (lmb**2 - P[0] - Q[0]) % p
+    yr = (lmb * (P[0] - xr) - P[1]) % p
+    return (xr, yr)
+
 # 原本的種子產生函數
 def generate_seeds(key):
     base_seed = 0
@@ -122,16 +142,19 @@ def encrypt(plaintext, key, block_size=10):
     # --- Step 3: 3D 矩陣換位 ---
     coords = [(i, j, k) for i in range(size) for j in range(size) for k in range(size)]
     flat_cipher = [''] * total_size
+    seed_point = (base_seed % p, base_seed % p)
     idx = 0
-    dynamic_seed = base_seed
     while coords:
-        random.seed(dynamic_seed)
-        pos = random.choice(coords)
-        coords.remove(pos)
+        # 每次取 seed_point.x mod 剩餘座標數
+        pos_idx = seed_point[0] % len(coords)
+        pos = coords.pop(pos_idx)
+
         i, j, k = pos
         flat_cipher[idx] = matrix[i][j][k]
-        char_val = ord(matrix[i][j][k])
-        dynamic_seed = (dynamic_seed * 131 + char_val + idx * 17) % (10**9 + 7)
+
+        # 更新 seed_point = seed_point + G
+        seed_point = point_add(seed_point, G)
+
         idx += 1
     length_str = str(len(plaintext)).zfill(4)
     for c in length_str:
