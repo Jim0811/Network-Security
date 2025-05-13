@@ -32,7 +32,7 @@ def generate_seeds(key):
 
 # 字元填充
 def pad_text(text, size):
-    charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+    charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
     random.seed(len(text))
     while len(text) < size:
         text += random.choice(charset)
@@ -73,7 +73,7 @@ def generate_multiple_sub_tables(key, num_tables):
 
 def generate_playfair_key_string(key: str) -> str:
     """Generate a 32-character custom alphabet from a key using Playfair rules."""
-    DEFAULT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+    DEFAULT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     used_chars = set()
     processed_key = []
     
@@ -132,6 +132,7 @@ def encrypt(plaintext, key, block_size=10):
     custom_alphabet = generate_playfair_key_string(key)
     base32_encoder = CustomBase32(custom_alphabet)
     base32_plaintext = base32_encoder.encode(plaintext)
+    print(base32_plaintext)
 
     # --- Step 2: 填充 + 轉 3D 矩陣 ---
     size = 9
@@ -156,7 +157,7 @@ def encrypt(plaintext, key, block_size=10):
         seed_point = point_add(seed_point, G)
 
         idx += 1
-    length_str = str(len(plaintext)).zfill(4)
+    length_str = str(len(base32_plaintext)).zfill(4)
     for c in length_str:
         flat_cipher.append(c)
 

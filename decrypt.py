@@ -25,7 +25,7 @@ def point_add(P, Q):
     return (xr, yr)
 
 def generate_playfair_key_string(key: str) -> str:
-    DEFAULT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+    DEFAULT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     used_chars = set()
     processed_key = []
     for c in key.upper():
@@ -108,6 +108,7 @@ def decrypt(ciphertext, key, size=9, block_size=10):
         else:
             recovered_text.append(c)
     
+    aplain = ''.join(recovered_text)
     # 2. 3D矩陣換位復原
     # 先提取最後4位長度信息（加密時附加在展平矩陣後的末尾）
     length_str = ''.join(recovered_text[-4:])
@@ -133,7 +134,8 @@ def decrypt(ciphertext, key, size=9, block_size=10):
     
     # 展平3D矩陣
     flat_text = flatten_3d(matrix)
-    
+    flat_text = flat_text[:original_length]
+
     # 3. 自定義Base32解碼（這是加密時的第一步）
     custom_alphabet = generate_playfair_key_string(key)
     base32_decoder = CustomBase32(custom_alphabet)
