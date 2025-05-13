@@ -15,7 +15,7 @@ def generate_seeds(key):
 
 # 字元填充
 def pad_text(text, size):
-    charset = 'abcdefghijklmnopqrstuvwxyz234567'
+    charset = 'abcdefghijklmnopqrstuvwxyz0123456789'
     random.seed(len(text))
     while len(text) < size:
         text += random.choice(charset)
@@ -56,7 +56,7 @@ def generate_multiple_sub_tables(key, num_tables):
 
 def generate_playfair_key_string(key: str) -> str:
     """Generate a 32-character custom alphabet from a key using Playfair rules."""
-    DEFAULT_CHARS = "abcdefghijklmnopqrstuvwxyz234567"
+    DEFAULT_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789"
     used_chars = set()
     processed_key = []
     
@@ -203,7 +203,7 @@ def encrypt(plaintext, key, block_size=10):
         char_val = ord(matrix[i][j][k])
         dynamic_seed = (dynamic_seed * 131 + char_val + idx * 17) % (10**9 + 7)
         idx += 1
-    length_str = str(len(plaintext)).zfill(4)
+    length_str = str(len(base32_plaintext)).zfill(4)
     for c in length_str:
         flat_cipher.append(c)
 
@@ -225,7 +225,6 @@ def encrypt(plaintext, key, block_size=10):
     #ho's encrypt
     #轉成any
     third_cipher = ''.join(final_cipher)
-    print(third_cipher)
     # 將明文轉換為索引
     indices = [char_to_idx[c] for c in third_cipher]
     N = 10  # 矩陣的列數（可以參數化）

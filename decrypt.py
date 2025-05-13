@@ -73,7 +73,7 @@ def generate_permutation(K, N, X=5, a=2, b=1):
     return permutation
 
 def generate_playfair_key_string(key: str) -> str:
-    DEFAULT_CHARS = "abcdefghijklmnopqrstuvwxyz234567"
+    DEFAULT_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789"
     used_chars = set()
     processed_key = []
     for c in key.upper():
@@ -201,6 +201,7 @@ def decrypt(ciphertext, key, size=9, block_size=10):
     
     # 展平3D矩陣
     flat_text = flatten_3d(matrix)
+    flat_text = flat_text[:original_length]
     
     # 3. 自定義Base32解碼（這是加密時的第一步）
     custom_alphabet = generate_playfair_key_string(key)
