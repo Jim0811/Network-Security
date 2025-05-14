@@ -26,26 +26,6 @@ def point_add(P, Q):
     yr = (lmb * (P[0] - xr) - P[1]) % p
     return (xr, yr)
 
-p = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1  
-a = 0
-b = 7
-G = (0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798, 
-     0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8)
-
-def point_add(P, Q):
-    if P == (None, None): return Q
-    if Q == (None, None): return P
-    if P == Q:
-        lmb = (3 * P[0] ** 2 + a) * pow(2 * P[1], p-2, p) % p
-    else:
-        if P[0] == Q[0]:
-            return (None, None)
-        lmb = (Q[1] - P[1]) * pow(Q[0] - P[0], p-2, p) % p
-
-    xr = (lmb**2 - P[0] - Q[0]) % p
-    yr = (lmb * (P[0] - xr) - P[1]) % p
-    return (xr, yr)
-
 # 原本的種子產生函數
 def generate_seeds(key):
     base_seed = 0
@@ -56,7 +36,7 @@ def generate_seeds(key):
 # 字元填充
 def pad_text(text, size):
     charset = 'abcdefghijklmnopqrstuvwxyz0123456789'
-    random.seed(len(text))
+    random.seed(key)
     while len(text) < size:
         text += random.choice(charset)
     return text
@@ -232,7 +212,7 @@ def encrypt(plaintext, key, block_size=10):
     # --- Step 3: 3D 矩陣換位 ---
     coords = [(i, j, k) for i in range(size) for j in range(size) for k in range(size)]
     flat_cipher = [''] * total_size
-    seed_point = (base_seed % p, base_seed % p)
+    seed_point = (base_seed % p, (base_seed * 32452843) % p)
     idx = 0
     while coords:
         # 每次取 seed_point.x mod 剩餘座標數
@@ -291,8 +271,8 @@ def encrypt(plaintext, key, block_size=10):
     return ''.join(last_cipher), base_seed, size
 
 
-plaintext = "se245d3c"
-key = "34AZY"
+plaintext = "ksdif"
+key = "011"
 
 # read public key
 with open("de_public.pem", "rb") as f:

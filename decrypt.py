@@ -231,7 +231,7 @@ def decrypt(ciphertext, key, size=9, block_size=10):
     coords = [(i, j, k) for i in range(size) for j in range(size) for k in range(size)]
     
     idx = 0
-    seed_point = (base_seed % p, base_seed % p)
+    seed_point = (base_seed % p, (base_seed * 32452843) % p)
     while coords and idx < len(cipher_body):
         pos_idx = seed_point[0] % len(coords)
         pos = coords.pop(pos_idx)
